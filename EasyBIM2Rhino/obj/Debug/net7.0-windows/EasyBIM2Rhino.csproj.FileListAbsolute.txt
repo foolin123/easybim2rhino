@@ -1,0 +1,14 @@
+F:\EasyBIM\EasyBIM2Rhino\EasyBIM2Rhino\obj\Debug\net7.0-windows\EasyBIM2Rhino.csproj.AssemblyReference.cache
+F:\EasyBIM\EasyBIM2Rhino\EasyBIM2Rhino\obj\Debug\net7.0-windows\EasyBIM2Rhino.GeneratedMSBuildEditorConfig.editorconfig
+F:\EasyBIM\EasyBIM2Rhino\EasyBIM2Rhino\obj\Debug\net7.0-windows\EasyBIM2Rhino.AssemblyInfoInputs.cache
+F:\EasyBIM\EasyBIM2Rhino\EasyBIM2Rhino\obj\Debug\net7.0-windows\EasyBIM2Rhino.AssemblyInfo.cs
+F:\EasyBIM\EasyBIM2Rhino\EasyBIM2Rhino\obj\Debug\net7.0-windows\EasyBIM2Rhino.csproj.CoreCompileInputs.cache
+F:\EasyBIM\EasyBIM2Rhino\EasyBIM2Rhino\bin\Debug\net7.0-windows\EasyBIM2Rhino.deps.json
+F:\EasyBIM\EasyBIM2Rhino\EasyBIM2Rhino\bin\Debug\net7.0-windows\EasyBIM2Rhino.runtimeconfig.json
+F:\EasyBIM\EasyBIM2Rhino\EasyBIM2Rhino\bin\Debug\net7.0-windows\EasyBIM2Rhino.rhp
+F:\EasyBIM\EasyBIM2Rhino\EasyBIM2Rhino\bin\Debug\net7.0-windows\EasyBIM2Rhino.pdb
+F:\EasyBIM\EasyBIM2Rhino\EasyBIM2Rhino\obj\Debug\net7.0-windows\EasyBIM2Rhino.rhp
+F:\EasyBIM\EasyBIM2Rhino\EasyBIM2Rhino\obj\Debug\net7.0-windows\refint\EasyBIM2Rhino.rhp
+F:\EasyBIM\EasyBIM2Rhino\EasyBIM2Rhino\obj\Debug\net7.0-windows\EasyBIM2Rhino.pdb
+F:\EasyBIM\EasyBIM2Rhino\EasyBIM2Rhino\obj\Debug\net7.0-windows\EasyBIM2Rhino.genruntimeconfig.cache
+F:\EasyBIM\EasyBIM2Rhino\EasyBIM2Rhino\obj\Debug\net7.0-windows\ref\EasyBIM2Rhino.rhp

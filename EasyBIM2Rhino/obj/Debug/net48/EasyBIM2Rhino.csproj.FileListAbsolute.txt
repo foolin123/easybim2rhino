@@ -1,0 +1,9 @@
+F:\EasyBIM\EasyBIM2Rhino\EasyBIM2Rhino\obj\Debug\net48\EasyBIM2Rhino.csproj.AssemblyReference.cache
+F:\EasyBIM\EasyBIM2Rhino\EasyBIM2Rhino\obj\Debug\net48\EasyBIM2Rhino.GeneratedMSBuildEditorConfig.editorconfig
+F:\EasyBIM\EasyBIM2Rhino\EasyBIM2Rhino\obj\Debug\net48\EasyBIM2Rhino.AssemblyInfoInputs.cache
+F:\EasyBIM\EasyBIM2Rhino\EasyBIM2Rhino\obj\Debug\net48\EasyBIM2Rhino.AssemblyInfo.cs
+F:\EasyBIM\EasyBIM2Rhino\EasyBIM2Rhino\obj\Debug\net48\EasyBIM2Rhino.csproj.CoreCompileInputs.cache
+F:\EasyBIM\EasyBIM2Rhino\EasyBIM2Rhino\bin\Debug\net48\EasyBIM2Rhino.rhp
+F:\EasyBIM\EasyBIM2Rhino\EasyBIM2Rhino\bin\Debug\net48\EasyBIM2Rhino.pdb
+F:\EasyBIM\EasyBIM2Rhino\EasyBIM2Rhino\obj\Debug\net48\EasyBIM2Rhino.rhp
+F:\EasyBIM\EasyBIM2Rhino\EasyBIM2Rhino\obj\Debug\net48\EasyBIM2Rhino.pdb
