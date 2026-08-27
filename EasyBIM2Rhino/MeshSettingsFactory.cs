@@ -12,67 +12,82 @@ namespace EasyBIM2Rhino
         Coarse,       // 较少
         Standard,     // 标准
         Smooth,       // 较多
-        HighQuality   // 精细
     }
 
     /// <summary>
-    /// 网格设置工厂：以工厂模式提供「预设」与「自定义」两种方式生成 MeshingParameters。
-    /// 预设对应 RhinoCommon 内置的 MeshingParameters 档位；自定义基于 Default 逐项覆盖。
+    /// 自定义网格参数
+    /// </summary>
+    public class MeshDensitySettings
+    {
+        /// <summary>密度 0~1，默认 0.0</summary>
+        public double Density = 0.0;
+
+        /// <summary>网格阶段角度（度），默认 20</summary>
+        public double GridAngle = 20.0;
+
+        /// <summary>最大长宽比，默认 6</summary>
+        public double AspectRatio = 6.0;
+
+        /// <summary>细化阶段角度，越小越细（std=20°）</summary>
+        public double RefineAngle = 20;
+
+        /// <summary>细化开关</summary>
+        public bool RefineGrid = true;
+
+        /// <summary>平面简化</summary>
+        public bool SimplePlanes = false;
+
+        /// <summary>接缝不焊</summary>
+        public bool JaggedSeams = false;
+
+        /// <summary>最小边缘长度，默认 0.0001</summary>
+        //public double MinEdgeLength = 0.0001;
+
+        /// <summary>最大边缘长度，0 表示不限制</summary>
+        //public double MaxEdgeLength = 0.0;
+
+        /// <summary>边缘至曲面最大距离（显式），0 表示仅用密度公式</summary>
+        //public double Tolerance = 0.0;
+    }
+
+    /// <summary>
+    /// 网格设置工厂：预设对应 RhinoCommon 内置档位，用户 7 个字段统一覆盖最终参数。
+    /// Density 直接对应 RelativeTolerance（0~1，越大越细），由 Rhino 内部按曲面尺寸换算容差。
     /// </summary>
     public static class MeshSettingsFactory
     {
-        /// <summary>
-        /// 按预设档位生成网格参数
-        /// </summary>
+        /// <summary>按预设档位生成网格参数</summary>
         public static MeshingParameters CreatePreset(MeshPreset preset)
         {
             switch (preset)
             {
                 case MeshPreset.Minimal:
-                    return new MeshingParameters(MeshingParameters.Minimal);
+                    return MeshingParameters.Minimal;
                 case MeshPreset.Coarse:
-                    return new MeshingParameters(MeshingParameters.Coarse);
+                    return MeshingParameters.FastRenderMesh;
                 case MeshPreset.Standard:
-                    return new MeshingParameters(MeshingParameters.Default);
+                    return MeshingParameters.Default;
                 case MeshPreset.Smooth:
-                    return new MeshingParameters(MeshingParameters.Smooth);
-                case MeshPreset.HighQuality:
-                    return new MeshingParameters(MeshingParameters.QualityRenderMesh);
+                    return MeshingParameters.QualityRenderMesh;
                 default:
-                    return new MeshingParameters(MeshingParameters.Default);
+                    return MeshingParameters.Default;
             }
         }
 
         /// <summary>
-        /// 按自定义参数生成网格参数（基于 Default 覆盖）
+        /// 把用户 7 个字段覆盖到给定网格参数上（角度字段按「度」转弧度；密度直接对应 RelativeTolerance 0~1）。
         /// </summary>
-        /// <param name="maxAngleDegrees">最大角度(度)，0 表示不覆盖</param>
-        /// <param name="aspectRatio">最大长宽比，0 表示不覆盖</param>
-        /// <param name="minEdgeLength">最小边缘长度</param>
-        /// <param name="maxEdgeLength">最大边缘长度，0 表示不限制</param>
-        /// <param name="tolerance">边缘至曲面的最大距离，0 表示自动</param>
-        public static MeshingParameters CreateCustom(
-            double maxAngleDegrees,
-            double aspectRatio,
-            double minEdgeLength,
-            double maxEdgeLength,
-            double tolerance)
+        public static void ApplySettings(MeshingParameters mp, MeshDensitySettings s)
         {
-            var mp = new MeshingParameters(MeshingParameters.Default);
+            if (mp == null || s == null) return;
 
-            if (maxAngleDegrees > 0)
-            {
-                mp.GridAngle = maxAngleDegrees * Math.PI / 180.0;
-            }
-            if (aspectRatio > 0)
-            {
-                mp.GridAspectRatio = aspectRatio;
-            }
-            mp.MinimumEdgeLength = minEdgeLength;
-            mp.MaximumEdgeLength = maxEdgeLength;
-            mp.Tolerance = tolerance;
-
-            return mp;
+            mp.RelativeTolerance = Math.Max(0.0, Math.Min(1.0, s.Density));
+            mp.GridAngle = s.GridAngle * Math.PI / 180.0;
+            mp.GridAspectRatio = s.AspectRatio;
+            mp.RefineAngle = s.RefineAngle * Math.PI / 180.0;
+            mp.RefineGrid = s.RefineGrid;
+            mp.SimplePlanes = s.SimplePlanes;
+            mp.JaggedSeams = s.JaggedSeams;
         }
     }
 }

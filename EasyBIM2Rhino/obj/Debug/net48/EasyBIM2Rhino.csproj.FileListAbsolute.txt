@@ -7,3 +7,4 @@ F:\EasyBIM\EasyBIM2Rhino\EasyBIM2Rhino\bin\Debug\net48\EasyBIM2Rhino.rhp
 F:\EasyBIM\EasyBIM2Rhino\EasyBIM2Rhino\bin\Debug\net48\EasyBIM2Rhino.pdb
 F:\EasyBIM\EasyBIM2Rhino\EasyBIM2Rhino\obj\Debug\net48\EasyBIM2Rhino.rhp
 F:\EasyBIM\EasyBIM2Rhino\EasyBIM2Rhino\obj\Debug\net48\EasyBIM2Rhino.pdb
+F:\EasyBIM\EasyBIM2Rhino\EasyBIM2Rhino\obj\Debug\net48\EasyBIM2Rhino.sourcelink.json

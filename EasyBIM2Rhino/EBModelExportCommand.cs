@@ -7,14 +7,15 @@ using Rhino;
 using Rhino.Commands;
 using Rhino.DocObjects;
 using Rhino.Geometry;
+using Rhino.Input;
 using Rhino.Input.Custom;
 
 namespace EasyBIM2Rhino
 {
     /// <summary>
     /// 把 Rhino 选中的 3D 实体导出到 EasyBIM 临时目录（rhino_to_eb.tmpData + marker）。
-    /// 网格密度支持「预设 5 档」与「自定义 5 项参数」，由 MeshSettingsFactory 生成 MeshingParameters。
-    /// 支持 Mesh/Brep/Extrusion/Surface/SubD，块实例递归展开；曲线/点/标注等非三维对象跳过。
+    /// 网格参数统一由 MeshDensitySettings（7 字段）驱动：预设仅加载初始值，可逐项修改；
+    /// Density 直接对应 RelativeTolerance（0~1，越大越细）。
     /// </summary>
     public class EBModelExportCommand : Command
     {
@@ -41,35 +42,59 @@ namespace EasyBIM2Rhino
                 return Result.Cancel;
             }
 
-            // 网格密度：预设 或 自定义
-            string presetInput = "标准";
-            var rc = Rhino.Input.RhinoGet.GetString(
-                "密度预设：极简/较少/标准/较多/精细/自定义（Enter=标准）",
-                true, ref presetInput);
-            if (rc != Result.Success) return Result.Cancel;
+            // 文本菜单循环：一行显示当前设置，Enter=执行，字母进入对应子项修改
+            MeshPreset currentPreset = MeshPreset.Standard;
+            var settings = new MeshDensitySettings();
 
-            bool isCustom = IsCustom(presetInput);
-            string densityLabel;
-            MeshingParameters meshingParams;
-
-            if (isCustom)
+            while (true)
             {
-                double angle, aspect, minEdge, maxEdge, tolerance;
-                if (!PromptNumber("最大角度(度，默认20)", 20.0, out angle)) return Result.Cancel;
-                if (!PromptNumber("最大长宽比(默认6)", 6.0, out aspect)) return Result.Cancel;
-                if (!PromptNumber("最小边缘长度(mm，默认0)", 0.0, out minEdge)) return Result.Cancel;
-                if (!PromptNumber("最大边缘长度(mm，0=不限)", 0.0, out maxEdge)) return Result.Cancel;
-                if (!PromptNumber("边缘至曲面最大距离(mm，0=自动)", 0.0, out tolerance)) return Result.Cancel;
+                string prompt = string.Format(
+                    "网格选项 Preset(P)={0} Density(D)={1} GridAngle(A)={2} AspectRatio(R)={3} RefineAngle(F)={4} RefineGrid(F)={5} SimplePlanes(S)={6} JaggedSeams(J)={7}",
+                    currentPreset, settings.Density, settings.GridAngle, settings.AspectRatio,
+                    settings.RefineAngle, settings.RefineGrid ? "on" : "off",
+                    settings.SimplePlanes ? "on" : "off", settings.JaggedSeams ? "on" : "off");
 
-                meshingParams = MeshSettingsFactory.CreateCustom(angle, aspect, minEdge, maxEdge, tolerance);
-                densityLabel = "自定义";
+                string input = string.Empty;
+                var rc = Rhino.Input.RhinoGet.GetString(prompt, true, ref input);
+                if (rc == Result.Nothing) break;
+                if (rc != Result.Success) return Result.Cancel;
+
+                string cmd = (input ?? string.Empty).Trim().ToLowerInvariant();
+                if (cmd.Length == 0) break;
+
+                switch (cmd[0])
+                {
+                    case 'p':
+                        string p = string.Empty;
+                        rc = Rhino.Input.RhinoGet.GetString("Preset: [1]Minimal [2]Coarse [3]Standard [4]Smooth ", true, ref p);
+                        if (rc == Result.Nothing) break;
+                        if (rc != Result.Success) return Result.Cancel;
+                        currentPreset = ParsePresetKey(currentPreset, p, settings);
+                        break;
+                    case 'd':
+                        if (!PromptNum("Density (0~1)", ref settings.Density)) return Result.Cancel;
+                        settings.Density = Math.Max(0.0, Math.Min(1.0, settings.Density));
+                        break;
+                    case 'a': if (!PromptNum("GridAngle (deg, 0=off)", ref settings.GridAngle)) return Result.Cancel; break;
+                    case 'r': if (!PromptNum("AspectRatio (0=unlimited)", ref settings.AspectRatio)) return Result.Cancel; break;
+                    case 'f': if (!PromptNum("RefineAngle (deg)", ref settings.RefineAngle)) return Result.Cancel; break;
+                    case 'g':
+                        settings.RefineGrid = !settings.RefineGrid;
+                        RhinoApp.WriteLine("RefineGrid: {0}", settings.RefineGrid ? "on" : "off");
+                        break;
+                    case 's':
+                        settings.SimplePlanes = !settings.SimplePlanes;
+                        RhinoApp.WriteLine("SimplePlanes: {0}", settings.SimplePlanes ? "on" : "off");
+                        break;
+                    case 'j':
+                        settings.JaggedSeams = !settings.JaggedSeams;
+                        RhinoApp.WriteLine("JaggedSeams: {0}", settings.JaggedSeams ? "on" : "off");
+                        break;
+                }
             }
-            else
-            {
-                MeshPreset preset = ParsePreset(presetInput);
-                meshingParams = MeshSettingsFactory.CreatePreset(preset);
-                densityLabel = "预设(" + presetInput + ")";
-            }
+
+            MeshingParameters meshingParams = MeshSettingsFactory.CreatePreset(currentPreset);
+            MeshSettingsFactory.ApplySettings(meshingParams, settings);
 
             var meshes = new List<Mesh>();
             var materialIndexPerMesh = new List<int>();
@@ -121,7 +146,7 @@ namespace EasyBIM2Rhino
                 }
 
                 File.WriteAllText(MarkerPath, "1");
-                RhinoApp.WriteLine("已按{0}导出 {1} 个网格到 EasyBIM 临时目录，请在 EasyBIM 中执行导入。", densityLabel, meshes.Count);
+                RhinoApp.WriteLine("已导出 {0} 个网格到 EasyBIM 临时目录，请在 EasyBIM 中执行导入。", meshes.Count);
                 return Result.Success;
             }
             catch (Exception ex)
@@ -131,31 +156,66 @@ namespace EasyBIM2Rhino
             }
         }
 
-        private static bool IsCustom(string input)
+        private static MeshPreset ParsePresetKey(MeshPreset currentPreset, string input, MeshDensitySettings settings)
         {
-            return (input ?? string.Empty).Trim() == "自定义";
-        }
+            string s = (input ?? string.Empty).Trim().ToLowerInvariant();
 
-        private static MeshPreset ParsePreset(string input)
-        {
-            input = (input ?? string.Empty).Trim();
-            switch (input)
+            switch (s)
             {
-                case "极简": return MeshPreset.Minimal;
-                case "较少": return MeshPreset.Coarse;
-                case "标准": return MeshPreset.Standard;
-                case "较多": return MeshPreset.Smooth;
-                case "精细": return MeshPreset.HighQuality;
-                default: return MeshPreset.Standard;
+                case "1":
+                case "minimal":
+                    settings.Density = 0.0;
+                    settings.GridAngle = 0.0;
+                    settings.AspectRatio = 6.0;
+                    settings.RefineAngle = 0.0;
+                    settings.RefineGrid = false;
+                    settings.SimplePlanes = false;
+                    settings.JaggedSeams = true;
+                    return MeshPreset.Minimal;
+
+                case "2":
+                case "coarse":
+                    settings.Density = 0.65;
+                    settings.GridAngle = 0.0;
+                    settings.AspectRatio = 0.0;
+                    settings.RefineAngle = 0.0;
+                    settings.RefineGrid = true;
+                    settings.SimplePlanes = true;
+                    settings.JaggedSeams = false;
+                    return MeshPreset.Coarse;
+
+                case "3":
+                case "standard":
+                    settings.Density = 0.0;
+                    settings.GridAngle = 20.0;
+                    settings.AspectRatio = 6.0;
+                    settings.RefineAngle = 20.0;
+                    settings.RefineGrid = true;
+                    settings.SimplePlanes = false;
+                    settings.JaggedSeams = false;
+                    return MeshPreset.Standard;
+
+                case "4":
+                case "smooth":
+                    settings.Density = 0.8;
+                    settings.GridAngle = 0.0;
+                    settings.AspectRatio = 0.0;
+                    settings.RefineAngle = 20.0;
+                    settings.RefineGrid = true;
+                    settings.SimplePlanes = true;
+                    settings.JaggedSeams = false;
+                    return MeshPreset.Smooth;
+
+                default:
+                    return currentPreset;
             }
         }
 
-        private static bool PromptNumber(string prompt, double defaultValue, out double value)
+        private static bool PromptNum(string prompt, ref double value)
         {
-            value = defaultValue;
             var gn = new GetNumber();
             gn.SetCommandPrompt(prompt);
-            gn.SetDefaultNumber(defaultValue);
+            gn.SetDefaultNumber(value);
             gn.SetLowerLimit(0, false);
             gn.AcceptNothing(true);
             gn.Get();
@@ -246,21 +306,32 @@ namespace EasyBIM2Rhino
             if (geometry == null) return null;
 
             if (geometry is Mesh mesh) return mesh;
-            if (geometry is Brep brep) return MergeMeshes(Mesh.CreateFromBrep(brep, mp));
-            if (geometry is Extrusion extrusion) return MergeMeshes(Mesh.CreateFromBrep(extrusion.ToBrep(true), mp));
-            if (geometry is SubD subD) return MergeMeshes(Mesh.CreateFromBrep(subD.ToBrep(), mp));
-            if (geometry is Surface surface)
-            {
-                Brep surfaceBrep = Brep.CreateFromSurface(surface);
-                return surfaceBrep != null ? MergeMeshes(Mesh.CreateFromBrep(surfaceBrep, mp)) : null;
-            }
+            if (geometry is Brep brep) return MeshBrep(brep, mp);
+            if (geometry is Extrusion extrusion) return MeshBrep(extrusion.ToBrep(true), mp);
+            if (geometry is SubD subD) return MeshBrep(subD.ToBrep(), mp);
+            if (geometry is Surface surface) return MeshSurface(surface, mp);
 
-            // Curve / Point / PointSet / Annotation / TextDot / Hatch / Light / ClipPlane / ... 跳过
             return null;
         }
 
         /// <summary>
-        /// CreateFromBrep(brep, mp) 返回的是 Mesh[]（每个面一个），合并成单个 Mesh
+        /// Brep → Mesh：整块网格化（密度/角度等由 mp 统一控制，Rhino 内部按面换算容差）
+        /// </summary>
+        private static Mesh MeshBrep(Brep brep, MeshingParameters mp)
+        {
+            return MergeMeshes(Mesh.CreateFromBrep(brep, mp));
+        }
+
+        /// <summary>
+        /// 单曲面 → Mesh：直接按 mp 网格化
+        /// </summary>
+        private static Mesh MeshSurface(Surface surface, MeshingParameters mp)
+        {
+            return Mesh.CreateFromSurface(surface, mp);
+        }
+
+        /// <summary>
+        /// CreateFromBrep(brep, mp) 返回 Mesh[]（每个面一个），合并成单个 Mesh
         /// </summary>
         private static Mesh MergeMeshes(Mesh[] meshes)
         {
