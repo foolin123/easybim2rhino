@@ -46,10 +46,11 @@ namespace EasyBIM2Rhino
             MeshPreset currentPreset = MeshPreset.Standard;
             var settings = new MeshDensitySettings();
 
+            //参数选择
             while (true)
             {
                 string prompt = string.Format(
-                    "网格选项 Preset(P)={0} Density(D)={1} GridAngle(A)={2} AspectRatio(R)={3} RefineAngle(F)={4} RefineGrid(F)={5} SimplePlanes(S)={6} JaggedSeams(J)={7}",
+                    "网格选项 Preset(P)={0} Density(D)={1} GridAngle(A)={2} AspectRatio(R)={3} RefineAngle(F)={4} RefineGrid(G)={5} SimplePlanes(S)={6} JaggedSeams(J)={7} [Enter=导出]",
                     currentPreset, settings.Density, settings.GridAngle, settings.AspectRatio,
                     settings.RefineAngle, settings.RefineGrid ? "on" : "off",
                     settings.SimplePlanes ? "on" : "off", settings.JaggedSeams ? "on" : "off");
@@ -132,8 +133,10 @@ namespace EasyBIM2Rhino
                         bw.Write(m.B);
                         bw.Write(m.A);
                         bw.Write(m.Opacity);
-                        bw.Write(string.Empty); // textureName（本方向暂不传贴图）
-                        bw.Write(0);            // textureData 长度 0
+                        bw.Write(m.TextureName ?? string.Empty);
+                        int texLen = m.TextureData?.Length ?? 0;
+                        bw.Write(texLen);
+                        if (texLen > 0) bw.Write(m.TextureData);
                     }
 
                     // 网格表
@@ -347,15 +350,36 @@ namespace EasyBIM2Rhino
         private static int GetMaterialIndex(RhinoObject obj, List<MaterialEntry> materials, Dictionary<string, int> materialMap)
         {
             Rhino.DocObjects.Material mat = obj.GetMaterial(true);
-            string name = string.IsNullOrEmpty(mat?.Name) ? ("RhinoMat_" + materials.Count) : mat.Name;
             System.Drawing.Color color = mat != null ? mat.DiffuseColor : System.Drawing.Color.Gray;
+            string name = string.IsNullOrEmpty(mat?.Name)
+                ? string.Format("rhinomat_{0:X2}{1:X2}{2:X2}{3:X2}", color.R, color.G, color.B, color.A)
+                : mat.Name;
+
+            //rhino透明度转为EB不透明度
             float opacity = mat != null ? (float)(1.0 - mat.Transparency) : 1.0f;
 
-            string key = name + "|" + color.ToArgb().ToString() + "|" + opacity.ToString("F3");
+            var texture = mat?.GetBitmapTexture() ?? null;
+            string textureName = string.IsNullOrEmpty(texture?.FileName) ? string.Empty : texture.FileName;
+            if (string.IsNullOrEmpty(textureName))
+            {
+                Rhino.Render.RenderTexture rt = GetRenderTexture(mat);
+                textureName = string.IsNullOrEmpty(rt?.Filename) ? string.Empty : Path.GetFileName(rt.Filename);
+            }
+
+            string key = name + "|" + color.ToArgb().ToString() + "|" + opacity.ToString("F2") + "|" + textureName;
             if (materialMap.TryGetValue(key, out int existing)) return existing;
 
             int index = materials.Count;
             materialMap[key] = index;
+            byte[] textureData = null;
+            try
+            {
+                textureData = GetTextureBytes(mat);
+            }
+            catch
+            {
+                textureData = null;
+            }
             materials.Add(new MaterialEntry
             {
                 Name = name,
@@ -363,9 +387,54 @@ namespace EasyBIM2Rhino
                 G = color.G,
                 B = color.B,
                 A = color.A,
-                Opacity = opacity
+                Opacity = opacity,
+                TextureName = textureName,
+                TextureData = textureData,
+
             });
             return index;
+        }
+
+        /// <summary>
+        /// 取材质位图贴图字节：外部文件直接读；内嵌/程序纹理渲染成 PNG（PBR 走渲染材质槽位）。
+        /// </summary>
+        private static byte[] GetTextureBytes(Rhino.DocObjects.Material mat)
+        {
+            if (mat == null) return null;
+
+            // 外部文件快速路径（基础材质漫反射）
+            var tex = mat.GetBitmapTexture()??mat.GetBumpTexture()??mat.GetEnvironmentTexture();
+            string fullPath = tex?.FileReference?.FullPath;
+            if (!string.IsNullOrEmpty(fullPath) && File.Exists(fullPath))
+                return File.ReadAllBytes(fullPath);
+
+
+            // 渲染材质兜底（PBR / 内嵌 / 程序纹理）
+            Rhino.Render.RenderTexture rt = GetRenderTexture(mat);
+            if (rt == null) return null;
+
+            if (!string.IsNullOrEmpty(rt.Filename) && File.Exists(rt.Filename))
+                return File.ReadAllBytes(rt.Filename);
+
+            int w, h, depth;
+            rt.PixelSize(out w, out h, out depth);
+            if (w <= 0) w = 512;
+            if (h <= 0) h = 512;
+
+            using (Rhino.Render.TextureEvaluator eval = rt.CreateEvaluator(Rhino.Render.RenderTexture.TextureEvaluatorFlags.Normal))
+            using (Rhino.Runtime.InteropWrappers.StdVectorByte png = eval.WriteToByteArray2(w, h))
+            {
+                return png.ToArray();
+            }
+        }
+
+        /// <summary>基础材质取漫反射槽位，PBR 取 base color 槽位</summary>
+        private static Rhino.Render.RenderTexture GetRenderTexture(Rhino.DocObjects.Material mat)
+        {
+            Rhino.Render.RenderMaterial rm = mat?.RenderMaterial;
+            if (rm == null) return null;
+            return rm.GetTextureFromUsage(Rhino.Render.RenderMaterial.StandardChildSlots.Diffuse)
+                ?? rm.GetTextureFromUsage(Rhino.Render.RenderMaterial.StandardChildSlots.PbrBaseColor);
         }
 
         private class MaterialEntry
@@ -373,6 +442,8 @@ namespace EasyBIM2Rhino
             public string Name;
             public byte R, G, B, A;
             public float Opacity;
+            public string TextureName = string.Empty;
+            public byte[] TextureData = null;
         }
     }
 }
