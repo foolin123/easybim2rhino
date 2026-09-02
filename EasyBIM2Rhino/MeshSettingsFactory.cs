@@ -20,22 +20,22 @@ namespace EasyBIM2Rhino
     public class MeshDensitySettings
     {
         /// <summary>密度 0~1，默认 0.0</summary>
-        public double Density = 0.0;
+        public double Density = 0.65;
 
         /// <summary>网格阶段角度（度），默认 20</summary>
-        public double GridAngle = 20.0;
+        public double GridAngle = 0.0;
 
         /// <summary>最大长宽比，默认 6</summary>
-        public double AspectRatio = 6.0;
+        public double AspectRatio = 0.0;
 
         /// <summary>细化阶段角度，越小越细（std=20°）</summary>
-        public double RefineAngle = 20;
+        public double RefineAngle = 0;
 
         /// <summary>细化开关</summary>
         public bool RefineGrid = true;
 
         /// <summary>平面简化</summary>
-        public bool SimplePlanes = false;
+        public bool SimplePlanes = true;
 
         /// <summary>接缝不焊</summary>
         public bool JaggedSeams = false;
