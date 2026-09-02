@@ -70,7 +70,7 @@ namespace EasyBIM2Rhino
                 case MeshPreset.Smooth:
                     return MeshingParameters.QualityRenderMesh;
                 default:
-                    return MeshingParameters.Default;
+                    return MeshingParameters.FastRenderMesh;
             }
         }
 

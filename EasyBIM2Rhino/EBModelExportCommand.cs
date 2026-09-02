@@ -43,7 +43,7 @@ namespace EasyBIM2Rhino
             }
 
             // 文本菜单循环：一行显示当前设置，Enter=执行，字母进入对应子项修改
-            MeshPreset currentPreset = MeshPreset.Standard;
+            MeshPreset currentPreset = MeshPreset.Coarse;
             var settings = new MeshDensitySettings();
 
             //参数选择
