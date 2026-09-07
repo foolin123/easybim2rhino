@@ -1,5 +1,7 @@
-using System;
 using Rhino.Geometry;
+using System;
+using System.ComponentModel;
+using System.Reflection;
 
 namespace EasyBIM2Rhino
 {
@@ -8,10 +10,27 @@ namespace EasyBIM2Rhino
     /// </summary>
     public enum MeshPreset
     {
-        Minimal,      // 极简
-        Coarse,       // 较少
-        Standard,     // 标准
-        Smooth,       // 较多
+        [Description("粗糙")] Coarse ,       // 较少
+        [Description("标准")] Standard ,     // 标准
+        [Description("平滑")] Smooth ,       // 较多
+    }
+
+    public static class MeshPresetHelper
+    {
+        public static string GetDescription(this MeshPreset value)
+        {
+            switch (value)
+            {
+                case (MeshPreset.Coarse):
+                    return "粗糙";
+                case (MeshPreset.Standard):
+                    return "标准";
+                case (MeshPreset.Smooth):
+                    return "平滑";
+                default:
+                    return "粗糙";
+            }
+        }
     }
 
     /// <summary>
@@ -23,13 +42,13 @@ namespace EasyBIM2Rhino
         public double Density = 0.65;
 
         /// <summary>网格阶段角度（度），默认 20</summary>
-        public double GridAngle = 0.0;
+        public double GridAngle = 20.0;
 
-        /// <summary>最大长宽比，默认 6</summary>
+        /// <summary>最大长宽比，默认 0</summary>
         public double AspectRatio = 0.0;
 
         /// <summary>细化阶段角度，越小越细（std=20°）</summary>
-        public double RefineAngle = 0;
+        //public double RefineAngle = 0;
 
         /// <summary>细化开关</summary>
         public bool RefineGrid = true;
@@ -61,8 +80,6 @@ namespace EasyBIM2Rhino
         {
             switch (preset)
             {
-                case MeshPreset.Minimal:
-                    return MeshingParameters.Minimal;
                 case MeshPreset.Coarse:
                     return MeshingParameters.FastRenderMesh;
                 case MeshPreset.Standard:
@@ -84,7 +101,7 @@ namespace EasyBIM2Rhino
             mp.RelativeTolerance = Math.Max(0.0, Math.Min(1.0, s.Density));
             mp.GridAngle = s.GridAngle * Math.PI / 180.0;
             mp.GridAspectRatio = s.AspectRatio;
-            mp.RefineAngle = s.RefineAngle * Math.PI / 180.0;
+            //mp.RefineAngle = s.RefineAngle * Math.PI / 180.0;
             mp.RefineGrid = s.RefineGrid;
             mp.SimplePlanes = s.SimplePlanes;
             mp.JaggedSeams = s.JaggedSeams;

@@ -1,10 +1,10 @@
 {
   "version": 2,
-  "dgSpecHash": "oamQwFKoMUA=",
+  "dgSpecHash": "634elXbDDlA=",
   "success": true,
   "projectFilePath": "F:\\EasyBIM\\EasyBIM2Rhino\\EasyBIM2Rhino\\EasyBIM2Rhino.csproj",
   "expectedPackageFiles": [
-    "C:\\Users\\QC837\\.nuget\\packages\\rhinocommon\\8.0.23304.9001\\rhinocommon.8.0.23304.9001.nupkg.sha512"
+    "C:\\Users\\QC837\\.nuget\\packages\\rhinocommon\\7.35.23346.11001\\rhinocommon.7.35.23346.11001.nupkg.sha512"
   ],
   "logs": []
 }

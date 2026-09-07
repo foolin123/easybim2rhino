@@ -47,8 +47,14 @@ namespace EasyBIM2Rhino
             string marker = File.ReadAllText(MarkerPath).Trim();
             if (marker != "1")
             {
-                RhinoApp.WriteLine("EasyBIM导出的数据已导入过，如需再次导入请在EasyBIM中重新导出。");
-                return Result.Cancel;
+                string prompt = "EasyBIM导出的数据已导入过，是否再次导入？ [Enter=确认 Esc=取消]";
+                string input = string.Empty;
+                var rc = Rhino.Input.RhinoGet.GetString(prompt, true, ref input);
+                if (rc != Result.Nothing)
+                {
+                    RhinoApp.WriteLine("已取消导入。");
+                    return Result.Cancel;
+                }
             }
 
             try
@@ -97,6 +103,11 @@ namespace EasyBIM2Rhino
                             int a = reader.ReadInt32();
                             int b = reader.ReadInt32();
                             int c = reader.ReadInt32();
+                            // 跳过错面：索引越界，或退化面（两个及以上顶点相同）
+                            if (a < 0 || a >= vertexCount || b < 0 || b >= vertexCount || c < 0 || c >= vertexCount)
+                                continue;
+                            if (a == b || b == c || a == c)
+                                continue;
                             mesh.Faces.AddFace(a, b, c);
                         }
 

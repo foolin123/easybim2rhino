@@ -1,5 +1,5 @@
 <Project Sdk="Microsoft.NET.Sdk">
-	
+		
   <PropertyGroup>
     <!-- Select the framework(s) you wish to target.
         Rhino 6: net45
@@ -8,11 +8,22 @@
         Rhino 8 Mac: net7.0, net7.0-macos, net7.0-macos12.0, etc
     -->
     <TargetFrameworks>net48</TargetFrameworks>
-	<PlatformTarget>x64</PlatformTarget>
+    <PlatformTarget>x64</PlatformTarget>
     <EnableDynamicLoading>true</EnableDynamicLoading>
     <TargetExt>.rhp</TargetExt>
     <NoWarn>NU1701</NoWarn>
     <EnableWindowsTargeting>true</EnableWindowsTargeting>
+    <Configurations>Debug-Rhino7;Release-Rhino7;Debug-Rhino8;Release-Rhino8</Configurations>
+  </PropertyGroup>
+
+  <!-- 编译符号：配置名含 Rhino7 则定义 RHINO_7，否则 RHINO_8 -->
+  <PropertyGroup Condition="$(Configuration.Contains('Rhino7'))">
+    <DefineConstants>$(DefineConstants);RHINO_7</DefineConstants>
+    <OutputPath>bin\$(Configuration)\</OutputPath>
+  </PropertyGroup>
+  <PropertyGroup Condition="!$(Configuration.Contains('Rhino7'))">
+    <DefineConstants>$(DefineConstants);RHINO_8</DefineConstants>
+    <OutputPath>bin\$(Configuration)\</OutputPath>
   </PropertyGroup>
   
   <PropertyGroup>
@@ -23,9 +34,19 @@
     <Description>Description of EasyBIM2Rhino</Description>
   </PropertyGroup>
   
-  <ItemGroup>
-    <PackageReference Include="RhinoCommon" Version="8.0.23304.9001" ExcludeAssets="runtime" />
-  </ItemGroup>
+  <!-- 根据配置引用不同版本的 RhinoCommon -->
+  <Choose>
+    <When Condition="$(Configuration.Contains('Rhino7'))">
+      <ItemGroup>
+        <PackageReference Include="RhinoCommon" Version="7.35.23346.11001" ExcludeAssets="runtime" />
+      </ItemGroup>
+    </When>
+    <Otherwise>
+      <ItemGroup>
+        <PackageReference Include="RhinoCommon" Version="8.0.23304.9001" ExcludeAssets="runtime" />
+      </ItemGroup>
+    </Otherwise>
+  </Choose>
   
   <!-- For Windows only builds -->
   <PropertyGroup Condition="$(TargetFramework.Contains('-windows')) or $(TargetFramework.StartsWith('net4'))">

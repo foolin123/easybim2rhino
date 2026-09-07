@@ -15,7 +15,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Debug")]
 [assembly: System.Reflection.AssemblyDescriptionAttribute("Description of EasyBIM2Rhino")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0+62c3818719828ea184d7e2349779b2181eeeb579")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0+46bcd504b32881c325df9f299187ed3aa8b3d97d")]
 [assembly: System.Reflection.AssemblyProductAttribute("EasyBIM2Rhino")]
 [assembly: System.Reflection.AssemblyTitleAttribute("EasyBIM2Rhino")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]

@@ -43,17 +43,20 @@ namespace EasyBIM2Rhino
             }
 
             // 文本菜单循环：一行显示当前设置，Enter=执行，字母进入对应子项修改
-            MeshPreset currentPreset = MeshPreset.Coarse;
+            MeshPreset currentPreset = MeshPreset.Standard;
             var settings = new MeshDensitySettings();
 
             //参数选择
             while (true)
             {
+                //"网格选项 Preset(P)={0} Density(D)={1} GridAngle(A)={2} AspectRatio(R)={3} RefineAngle(F)={4} RefineGrid(G)={5} SimplePlanes(S)={6} JaggedSeams(J)={7} [Enter=导出]",
                 string prompt = string.Format(
-                    "网格选项 Preset(P)={0} Density(D)={1} GridAngle(A)={2} AspectRatio(R)={3} RefineAngle(F)={4} RefineGrid(G)={5} SimplePlanes(S)={6} JaggedSeams(J)={7} [Enter=导出]",
-                    currentPreset, settings.Density, settings.GridAngle, settings.AspectRatio,
-                    settings.RefineAngle, settings.RefineGrid ? "on" : "off",
-                    settings.SimplePlanes ? "on" : "off", settings.JaggedSeams ? "on" : "off");
+                    "网格选项  预设(P)={0}  密度(D)={1} 最大角度(A)={2} 最大长宽比(R)={3} 网格细分(G)={4} 平面最简化(S)={5} 不对齐接缝(J)={6} [Enter=导出]",
+                    currentPreset.GetDescription(), settings.Density, settings.GridAngle, settings.AspectRatio,
+                    settings.RefineGrid ? "是" : "否",
+                    settings.SimplePlanes ? "是" : "否", 
+                    settings.JaggedSeams ? "是" : "否"
+                    );
 
                 string input = string.Empty;
                 var rc = Rhino.Input.RhinoGet.GetString(prompt, true, ref input);
@@ -67,29 +70,30 @@ namespace EasyBIM2Rhino
                 {
                     case 'p':
                         string p = string.Empty;
-                        rc = Rhino.Input.RhinoGet.GetString("Preset: [1]Minimal [2]Coarse [3]Standard [4]Smooth ", true, ref p);
+                        //rc = Rhino.Input.RhinoGet.GetString("Preset: [1]Minimal [2]Coarse [3]Standard [4]Smooth ", true, ref p);
+                        rc = Rhino.Input.RhinoGet.GetString("预设: [1]粗糙 [2]标准 [3]平滑 ", true, ref p);
                         if (rc == Result.Nothing) break;
                         if (rc != Result.Success) return Result.Cancel;
                         currentPreset = ParsePresetKey(currentPreset, p, settings);
                         break;
                     case 'd':
-                        if (!PromptNum("Density (0~1)", ref settings.Density)) return Result.Cancel;
+                        if (!PromptNum("密度 (0~1)", ref settings.Density)) return Result.Cancel;
                         settings.Density = Math.Max(0.0, Math.Min(1.0, settings.Density));
                         break;
-                    case 'a': if (!PromptNum("GridAngle (deg, 0=off)", ref settings.GridAngle)) return Result.Cancel; break;
-                    case 'r': if (!PromptNum("AspectRatio (0=unlimited)", ref settings.AspectRatio)) return Result.Cancel; break;
-                    case 'f': if (!PromptNum("RefineAngle (deg)", ref settings.RefineAngle)) return Result.Cancel; break;
+                    case 'a': if (!PromptNum("最大角度 (0=默认)", ref settings.GridAngle)) return Result.Cancel; break;
+                    case 'r': if (!PromptNum("最大长宽比 (0=不设限)", ref settings.AspectRatio)) return Result.Cancel; break;
+                    //case 'f': if (!PromptNum("细分角度 (deg)", ref settings.RefineAngle)) return Result.Cancel; break;
                     case 'g':
                         settings.RefineGrid = !settings.RefineGrid;
-                        RhinoApp.WriteLine("RefineGrid: {0}", settings.RefineGrid ? "on" : "off");
+                        RhinoApp.WriteLine("网格细分: {0}", settings.RefineGrid ? "是" : "否");
                         break;
                     case 's':
                         settings.SimplePlanes = !settings.SimplePlanes;
-                        RhinoApp.WriteLine("SimplePlanes: {0}", settings.SimplePlanes ? "on" : "off");
+                        RhinoApp.WriteLine("平面最简化: {0}", settings.SimplePlanes ? "是" : "否");
                         break;
                     case 'j':
                         settings.JaggedSeams = !settings.JaggedSeams;
-                        RhinoApp.WriteLine("JaggedSeams: {0}", settings.JaggedSeams ? "on" : "off");
+                        RhinoApp.WriteLine("不对齐接缝: {0}", settings.JaggedSeams ? "是" : "否");
                         break;
                 }
             }
@@ -166,44 +170,30 @@ namespace EasyBIM2Rhino
             switch (s)
             {
                 case "1":
-                case "minimal":
-                    settings.Density = 0.0;
-                    settings.GridAngle = 0.0;
-                    settings.AspectRatio = 6.0;
-                    settings.RefineAngle = 0.0;
-                    settings.RefineGrid = false;
-                    settings.SimplePlanes = false;
-                    settings.JaggedSeams = true;
-                    return MeshPreset.Minimal;
-
-                case "2":
-                case "coarse":
-                    settings.Density = 0.65;
+                    settings.Density = 0.50;
                     settings.GridAngle = 0.0;
                     settings.AspectRatio = 0.0;
-                    settings.RefineAngle = 0.0;
+                    //settings.RefineAngle = 0.0;
                     settings.RefineGrid = true;
                     settings.SimplePlanes = true;
                     settings.JaggedSeams = false;
                     return MeshPreset.Coarse;
 
-                case "3":
-                case "standard":
-                    settings.Density = 0.0;
+                case "2":
+                    settings.Density = 0.65;
                     settings.GridAngle = 20.0;
-                    settings.AspectRatio = 6.0;
-                    settings.RefineAngle = 20.0;
+                    settings.AspectRatio = 0.0;
+                    //settings.RefineAngle = 20.0;
                     settings.RefineGrid = true;
                     settings.SimplePlanes = false;
                     settings.JaggedSeams = false;
                     return MeshPreset.Standard;
 
-                case "4":
-                case "smooth":
-                    settings.Density = 0.8;
+                case "3":
+                    settings.Density = 0.80;
                     settings.GridAngle = 0.0;
                     settings.AspectRatio = 0.0;
-                    settings.RefineAngle = 20.0;
+                    //settings.RefineAngle = 20.0;
                     settings.RefineGrid = true;
                     settings.SimplePlanes = true;
                     settings.JaggedSeams = false;
@@ -421,20 +411,52 @@ namespace EasyBIM2Rhino
             if (w <= 0) w = 512;
             if (h <= 0) h = 512;
 
+#if RHINO_8
             using (Rhino.Render.TextureEvaluator eval = rt.CreateEvaluator(Rhino.Render.RenderTexture.TextureEvaluatorFlags.Normal))
             using (Rhino.Runtime.InteropWrappers.StdVectorByte png = eval.WriteToByteArray2(w, h))
             {
                 return png.ToArray();
             }
+#else
+            // Rhino 7：通过 TextureEvaluator 逐像素采样
+            using (var eval = rt.CreateEvaluator(Rhino.Render.RenderTexture.TextureEvaluatorFlags.Normal))
+            using (var bmp = new System.Drawing.Bitmap(w, h))
+            {
+                for (int y = 0; y < h; y++)
+                {
+                    for (int x = 0; x < w; x++)
+                    {
+                        double u = (double)x / Math.Max(1, w - 1);
+                        double v = (double)y / Math.Max(1, h - 1);
+                        var pt = new Rhino.Geometry.Point3d(u, v, 0);
+                        var du = new Rhino.Geometry.Vector3d(1, 0, 0);
+                        var dv = new Rhino.Geometry.Vector3d(0, 1, 0);
+                        var col = new Rhino.Display.Color4f();
+                        eval.GetColor(pt, du, dv, ref col);
+                        bmp.SetPixel(x, h - 1 - y, System.Drawing.Color.FromArgb(
+                            (int)(col.A * 255), (int)(col.R * 255), (int)(col.G * 255), (int)(col.B * 255)));
+                    }
+                }
+                using (var ms = new System.IO.MemoryStream())
+                {
+                    bmp.Save(ms, System.Drawing.Imaging.ImageFormat.Png);
+                    return ms.ToArray();
+                }
+            }
+#endif
         }
 
-        /// <summary>基础材质取漫反射槽位，PBR 取 base color 槽位</summary>
+        /// <summary>基础材质取漫反射槽位，Rhino 8 PBR 取 base color 槽位</summary>
         private static Rhino.Render.RenderTexture GetRenderTexture(Rhino.DocObjects.Material mat)
         {
             Rhino.Render.RenderMaterial rm = mat?.RenderMaterial;
             if (rm == null) return null;
-            return rm.GetTextureFromUsage(Rhino.Render.RenderMaterial.StandardChildSlots.Diffuse)
-                ?? rm.GetTextureFromUsage(Rhino.Render.RenderMaterial.StandardChildSlots.PbrBaseColor);
+            var tex = rm.GetTextureFromUsage(Rhino.Render.RenderMaterial.StandardChildSlots.Diffuse);
+#if RHINO_8
+            if (tex == null)
+                tex = rm.GetTextureFromUsage(Rhino.Render.RenderMaterial.StandardChildSlots.PbrBaseColor);
+#endif
+            return tex;
         }
 
         private class MaterialEntry

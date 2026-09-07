@@ -1,5 +1,13 @@
 {
   "profiles": {
+    "Rhino 7": {
+      "commandName": "Executable",
+      "executablePath": "D:\\Program Files\\Rhino 7\\System\\Rhino.exe",
+      "commandLineArgs": "/netfx",
+      "environmentVariables": {
+        "RHINO_PACKAGE_DIRS": "$(ProjectDir)$(OutputPath)\\"
+      }
+    },
     "Rhino 8": {
       "commandName": "Executable",
       "executablePath": "D:\\Program Files\\Rhino 8\\System\\Rhino.exe",
