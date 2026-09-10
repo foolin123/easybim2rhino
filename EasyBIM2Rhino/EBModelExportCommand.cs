@@ -117,6 +117,16 @@ namespace EasyBIM2Rhino
                 return Result.Cancel;
             }
 
+            // 单位转换：非毫米单位自动缩放到毫米
+            double unitScale = Rhino.RhinoMath.UnitScale(doc.ModelUnitSystem, Rhino.UnitSystem.Millimeters);
+            if (Math.Abs(unitScale - 1.0) > 1e-6)
+            {
+                var scaleXform = Transform.Scale(Point3d.Origin, unitScale);
+                foreach (var mesh in meshes)
+                    mesh.Transform(scaleXform);
+                RhinoApp.WriteLine("已将模型从 {0} 缩放至 mm （×{1:F4}）。", doc.ModelUnitSystem, unitScale);
+            }
+
             try
             {
                 Directory.CreateDirectory(DataDir);

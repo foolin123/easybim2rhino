@@ -81,6 +81,9 @@ namespace EasyBIM2Rhino
                     // 材质表：文件内材料索引 → Rhino 文档材料索引
                     List<int> materialIndices = ReadMaterials(reader, doc, minor);
 
+                    // EB 数据为 mm，转换为 Rhino 当前文件单位
+                    double unitScale = Rhino.RhinoMath.UnitScale(Rhino.UnitSystem.Millimeters, doc.ModelUnitSystem);
+
                     int meshCount = reader.ReadInt32();
                     for (int m = 0; m < meshCount; m++)
                     {
@@ -110,6 +113,10 @@ namespace EasyBIM2Rhino
                                 continue;
                             mesh.Faces.AddFace(a, b, c);
                         }
+
+                        // 单位转换：mm → 当前文件单位
+                        if (Math.Abs(unitScale - 1.0) > 1e-6)
+                            mesh.Transform(Transform.Scale(Point3d.Origin, unitScale));
 
                         // 确保封闭网格法线朝外，避免反面
                         mesh.UnifyNormals();
