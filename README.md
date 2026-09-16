@@ -159,10 +159,10 @@ EasyBIM导出的数据已导入过，是否再次导入？ [Enter=确认 Esc=取
 
 ## 二进制文件格式
 
-两个方向共用同一格式（签名 `EBRH`，版本 `1.1`）：
+两个方向共用同一格式（签名 `EBRH`，版本 `1.0`）：
 
 ```
-[4B ASCII "EBRH"] [1B major=1] [1B minor=1]
+[4B ASCII "EBRH"] [1B major=1] [1B minor=0]
 
 ── 材料表 ──
 [int materialCount]
