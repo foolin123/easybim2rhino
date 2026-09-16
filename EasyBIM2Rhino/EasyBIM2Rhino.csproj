@@ -53,4 +53,22 @@
     <UseWpf>true</UseWpf>
   </PropertyGroup>
 
+  <!-- 编译前自动重生成工具栏 .rui（把 assets 图标烤进去）；python 缺失时不阻断编译 -->
+  <Target Name="GenRui" BeforeTargets="Build">
+    <Exec Command="py &quot;$(ProjectDir)..\gen_rui.py&quot;" ContinueOnError="true" IgnoreExitCode="true" />
+  </Target>
+
+  <!-- 工具栏/图标按钮：与 .rhp 同名同目录输出，Rhino 首次加载插件时自动打开。
+       按版本各带一份：Rhino7 槽位建议用 R7 工具栏编辑器产出并保存回 Toolbars\Rhino7\，保证 R7 位图兼容。 -->
+  <ItemGroup Condition="$(Configuration.Contains('Rhino7'))">
+    <Content Include="Toolbars\Rhino7\EasyBIM2Rhino.rui" Link="EasyBIM2Rhino.rui">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+  </ItemGroup>
+  <ItemGroup Condition="!$(Configuration.Contains('Rhino7'))">
+    <Content Include="Toolbars\Rhino8\EasyBIM2Rhino.rui" Link="EasyBIM2Rhino.rui">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+  </ItemGroup>
+
 </Project>

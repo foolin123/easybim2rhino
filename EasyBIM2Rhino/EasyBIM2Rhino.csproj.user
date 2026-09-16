@@ -4,7 +4,7 @@
     <DebuggerFlavor>ProjectDebugger</DebuggerFlavor>
   </PropertyGroup>
   <PropertyGroup>
-    <ActiveDebugProfile>Rhino 8</ActiveDebugProfile>
+    <ActiveDebugProfile>Rhino 7</ActiveDebugProfile>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(TargetFramework)|$(Platform)'=='Debug-Rhino8|net48|AnyCPU'">
     <DebuggerFlavor>ProjectDebugger</DebuggerFlavor>

@@ -15,7 +15,7 @@ namespace EasyBIM2Rhino
     ///   目录: %LocalAppData%\EasyBIM\RhinoPlugIn
     ///   数据: eb_to_rhino.tmpData
     ///     [4B "EBRH"][1B major][1B minor]
-    ///     minor>=1: [int materialCount]{[string name][byte R][byte G][byte B][byte A][float opacity][string texName][int texDataLen][byte[] texData]}
+    ///     [int materialCount]{[string name][byte R][byte G][byte B][byte A][float opacity][string texName][float texWidthMM][float texHeightMM][int texDataLen][byte[] texData]}
     ///     [int meshCount]{ [int materialIndex(-1=无)] [int vc][float x,y,z*vc][int tc][int a,b,c*tc] }
     ///   握手: eb_to_rhino.marker  "1"=有数据待导入；"0"=已消费
     /// 文件内坐标为EB模型坐标(mm)；opacity 为不透明度，此处转 transparency=1-opacity
@@ -78,8 +78,9 @@ namespace EasyBIM2Rhino
                         return Result.Failure;
                     }
 
-                    // 材质表：文件内材料索引 → Rhino 文档材料索引
-                    List<int> materialIndices = ReadMaterials(reader, doc, minor);
+                    // 材质表：文件内材料索引 → Rhino 文档材料索引；texSizes 为每材质贴图物理尺寸(mm)
+                    List<float[]> texSizes;
+                    List<int> materialIndices = ReadMaterials(reader, doc, out texSizes);
 
                     // EB 数据为 mm，转换为 Rhino 当前文件单位
                     double unitScale = Rhino.RhinoMath.UnitScale(Rhino.UnitSystem.Millimeters, doc.ModelUnitSystem);
@@ -87,7 +88,7 @@ namespace EasyBIM2Rhino
                     int meshCount = reader.ReadInt32();
                     for (int m = 0; m < meshCount; m++)
                     {
-                        int materialIndex = minor >= 1 ? reader.ReadInt32() : -1;
+                        int materialIndex = reader.ReadInt32();
 
                         var mesh = new Rhino.Geometry.Mesh();
 
@@ -118,6 +119,10 @@ namespace EasyBIM2Rhino
                         if (Math.Abs(unitScale - 1.0) > 1e-6)
                             mesh.Transform(Transform.Scale(Point3d.Origin, unitScale));
 
+                        // 全部面被过滤掉的空网格不入库，避免产生不可见空对象
+                        if (mesh.Faces.Count == 0)
+                            continue;
+
                         // 确保封闭网格法线朝外，避免反面
                         mesh.UnifyNormals();
                         if (mesh.IsClosed)
@@ -139,7 +144,27 @@ namespace EasyBIM2Rhino
                             attributes.MaterialSource = ObjectMaterialSource.MaterialFromObject;
                         }
 
-                        doc.Objects.AddMesh(mesh, attributes);
+                        Guid objId = doc.Objects.AddMesh(mesh, attributes);
+
+                        // 按导出侧贴图物理尺寸(mm)应用 BOX 映射；EB 为单一全局比例，X/Y/Z 三轴统一
+                        // 间隔为模型单位，需乘 unitScale
+                        if (materialIndex >= 0 && materialIndex < texSizes.Count)
+                        {
+                            float[] sz = texSizes[materialIndex];
+                            float s = sz[0] > 0 ? sz[0] : sz[1];
+                            if (s > 0)
+                            {
+                                float su = (float)(s * unitScale);
+                                var boxMap = Rhino.Render.TextureMapping.CreateBoxMapping(
+                                    Plane.WorldXY,
+                                    new Interval(0, su),
+                                    new Interval(0, su),
+                                    new Interval(0, su),
+                                    false);
+                                doc.Objects.ModifyTextureMapping(objId, 1, boxMap);
+                            }
+                        }
+
                         imported++;
                     }
                 }
@@ -160,10 +185,10 @@ namespace EasyBIM2Rhino
         /// 读取材料表并加入 Rhino 文档，返回 文件材料索引 → 文档材料索引 的映射。
         /// 贴图以压缩原始字节写到 .3dm 所在目录的 EasyBIM_Textures 子目录并引用（不内嵌，避免 DIB 膨胀）。
         /// </summary>
-        private static List<int> ReadMaterials(BinaryReader reader, RhinoDoc doc, byte minor)
+        private static List<int> ReadMaterials(BinaryReader reader, RhinoDoc doc, out List<float[]> texSizes)
         {
             var materialIndices = new List<int>();
-            if (minor < 1) return materialIndices;
+            texSizes = new List<float[]>();
 
             int materialCount = reader.ReadInt32();
             for (int i = 0; i < materialCount; i++)
@@ -175,6 +200,9 @@ namespace EasyBIM2Rhino
                 byte a = reader.ReadByte();
                 float opacity = reader.ReadSingle();
                 string textureName = reader.ReadString();
+                float texW = reader.ReadSingle();
+                float texH = reader.ReadSingle();
+                texSizes.Add(new[] { texW, texH });
                 int textureDataLength = reader.ReadInt32();
                 byte[] textureData = null;
                 if (textureDataLength > 0)

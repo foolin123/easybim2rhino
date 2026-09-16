@@ -16,13 +16,36 @@ namespace EasyBIM2Rhino
         public EasyBIM2RhinoPlugin()
         {
             Instance = this;
+            PurgeStaleToolbarCollections();
         }
 
         ///<summary>Gets the only instance of the EasyBIM2RhinoPlugin plug-in.</summary>
         public static EasyBIM2RhinoPlugin Instance { get; private set; }
 
-        // You can override methods here to change the plug-in behavior on
-        // loading and shut down, add options pages to the Rhino _Option command
-        // and maintain plug-in wide options in a document.
+        /// <summary>
+        /// 清理历史残留：关闭"路径含 EasyBIM2Rhino 且文件已不存在"的工具栏集合
+        /// （旧版本反复 Open 在工作区留下的重复项 00/01/02）。只删失效项，不碰任何有效集合。
+        /// 工具栏本体由随 .rhp 同目录的 EasyBIM2Rhino.rui 由 Rhino 自动加载，此处不做打开操作。
+        /// </summary>
+        private static void PurgeStaleToolbarCollections()
+        {
+            try
+            {
+                foreach (Rhino.UI.ToolbarFile tf in Rhino.RhinoApp.ToolbarFiles)
+                {
+                    if (string.IsNullOrEmpty(tf.Path)) continue;
+                    if (tf.Path.IndexOf("EasyBIM2Rhino", System.StringComparison.OrdinalIgnoreCase) < 0) continue;
+                    if (System.IO.File.Exists(tf.Path)) continue;
+                    try { tf.Close(false); } catch { }
+                }
+            }
+            catch
+            {
+                // 清理失败不影响插件
+            }
+        }
+
+        // 工具栏/图标按钮由随 .rhp 同目录输出的 EasyBIM2Rhino.rui 提供，
+        // Rhino 启动时自动加载，无需在此做任何释放或打开操作。
     }
 }

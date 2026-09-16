@@ -23,7 +23,7 @@ namespace EasyBIM2Rhino
 
         private const string FILE_SIGNATURE = "EBRH";
         private const byte CURRENT_MAJOR_VERSION = 1;
-        private const byte CURRENT_MINOR_VERSION = 1;
+        private const byte CURRENT_MINOR_VERSION = 0;
 
         private static string DataDir => Path.Combine(
             System.Environment.GetFolderPath(System.Environment.SpecialFolder.LocalApplicationData),
@@ -124,6 +124,12 @@ namespace EasyBIM2Rhino
                 var scaleXform = Transform.Scale(Point3d.Origin, unitScale);
                 foreach (var mesh in meshes)
                     mesh.Transform(scaleXform);
+                // 贴图物理尺寸同样从文档单位换算到 mm（GetMaterialIndex 读到的是文档单位）
+                foreach (var m in materials)
+                {
+                    m.TexWidthMM = (float)(m.TexWidthMM * unitScale);
+                    m.TexHeightMM = (float)(m.TexHeightMM * unitScale);
+                }
                 RhinoApp.WriteLine("已将模型从 {0} 缩放至 mm （×{1:F4}）。", doc.ModelUnitSystem, unitScale);
             }
 
@@ -148,6 +154,8 @@ namespace EasyBIM2Rhino
                         bw.Write(m.A);
                         bw.Write(m.Opacity);
                         bw.Write(m.TextureName ?? string.Empty);
+                        bw.Write(m.TexWidthMM);
+                        bw.Write(m.TexHeightMM);
                         int texLen = m.TextureData?.Length ?? 0;
                         bw.Write(texLen);
                         if (texLen > 0) bw.Write(m.TextureData);
@@ -369,6 +377,20 @@ namespace EasyBIM2Rhino
             string key = name + "|" + color.ToArgb().ToString() + "|" + opacity.ToString("F2") + "|" + textureName;
             if (materialMap.TryGetValue(key, out int existing)) return existing;
 
+            // 贴图物理尺寸(mm)：读对象的 BOX 映射盒尺寸。
+            // EB 侧为单一全局比例（统一影响 XYZ），故以 X 轴为权威值，W/H 回传同一值
+            float texW = 0, texH = 0;
+            var tm = obj.GetTextureMapping(1);
+            if (tm != null && tm.MappingType == Rhino.Render.TextureMappingType.BoxMapping)
+            {
+                Plane mapPlane; Interval ix, iy, iz;
+                if (tm.TryGetMappingBox(out mapPlane, out ix, out iy, out iz))
+                {
+                    texW = (float)ix.Length;
+                    texH = (float)ix.Length;
+                }
+            }
+
             int index = materials.Count;
             materialMap[key] = index;
             byte[] textureData = null;
@@ -389,6 +411,8 @@ namespace EasyBIM2Rhino
                 A = color.A,
                 Opacity = opacity,
                 TextureName = textureName,
+                TexWidthMM = texW,
+                TexHeightMM = texH,
                 TextureData = textureData,
 
             });
@@ -475,6 +499,8 @@ namespace EasyBIM2Rhino
             public byte R, G, B, A;
             public float Opacity;
             public string TextureName = string.Empty;
+            public float TexWidthMM = 0;
+            public float TexHeightMM = 0;
             public byte[] TextureData = null;
         }
     }
